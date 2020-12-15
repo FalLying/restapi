@@ -1,0 +1,29 @@
+{
+  "name": "rest-api",
+  "version": "1.0.0",
+  "description": "Criando uma API Rest",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FalLying/restapi.git"
+  },
+  "author": "Jonas Brito",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FalLying/restapi/issues"
+  },
+  "homepage": "https://github.com/FalLying/restapi#readme",
+  "dependencies": {
+    "consign": "^0.1.6",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "moment": "^2.29.1",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  }
+}

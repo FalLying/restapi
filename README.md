@@ -1,3 +1,3 @@
 ## API REST - Curso Alura
 
-Construindo um API Rest
+API REST - Uma API que segue o padrão MVC, utilizando Node.js e Express.

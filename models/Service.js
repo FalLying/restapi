@@ -1,97 +1,84 @@
-const connection = require("../config/connection");
+const connection = require("../infra/database/connection");
 const moment = require("moment");
+const axios = require("axios");
+const repository = require("../repositories/service");
 
 class Service {
-  add(service, res) {
-    const created_at = moment().format("YYYY-MM-DD");
-    const date_service = moment(service.date_service, "DD/MM/YYYY").format(
-      "YYYY-MM-DD"
-    );
+  constructor() {
+    this.isValidDate = (date_service, created_at) =>
+      moment(date_service).isSameOrAfter(created_at);
+    this.isValidClient = (client) => client.length >= 5;
+    this.isValid = (params) =>
+      this.validations.filter((item) => {
+        const { field } = item;
+        const param = params[field];
 
-    const isValidDate = moment(date_service).isSameOrAfter(created_at);
-    const isValidClient = service.client.length >= 5;
-
-    const validations = [
+        return !item.valid(param);
+      });
+    this.validations = [
       {
         field: "client",
-        valid: isValidClient,
-        error: "O nome do cliente deve ter no mínimo 5 caracteres.",
+        valid: this.isValidClient,
+        error: "O nome do cliente deve ter no mínimo 11 caracteres.",
       },
       {
         filed: "date_service",
-        valid: isValidDate,
+        valid: this.isValidDate,
         error:
           "A data do atendimento deve ser maior ou igual a data de abertura.",
       },
     ];
+  }
 
-    const error = validations.filter((field) => !field.valid);
+  add(data) {
+    const created_at = moment().format("YYYY-MM-DD");
+    const date_service = moment(data.date_service, "DD/MM/YYYY").format(
+      "YYYY-MM-DD"
+    );
+
+    const params = {
+      date_service: { date_service, created_at },
+      client: { length: data.client.length },
+    };
+
+    const error = this.isValid(params);
     const isError = error.length;
 
     if (isError) {
-      res.status(400).send(error);
+      return new Promise((resolve, reject) => reject(error));
     } else {
-      const handleService = { ...service, created_at, date_service };
-      const sql = "INSERT INTO services SET ?";
+      const handleService = { ...data, created_at, date_service };
 
-      connection.query(sql, handleService, (error, result) => {
-        if (error) {
-          res.status(400).send(error);
-        } else {
-          const id = result.insertId;
-          res.status(200).send({ ...service, id });
-        }
+      return repository.add(handleService).then((result) => {
+        const id = result.insertId;
+        return { ...data, id };
       });
     }
   }
 
-  list(res) {
-    const sql = "SELECT * FROM services";
+  list() {
+    return repository.list();
+  }
 
-    connection.query(sql, (error, result) => {
-      if (error) {
-        res.status(500).send(error);
-      } else {
-        res.status(200).send(result);
-      }
+  get(id) {
+    return repository.get(id).then(async (result) => {
+      const service = result[0];
+      const cpf = service.client;
+      const { data } = await axios.get(`http://localhost:8082/${cpf}`);
+      service.client = data;
+      return service;
     });
   }
 
-  get(req, res) {
-    const sql = `SELECT * FROM services WHERE id = ?`;
-
-    connection.query(sql, req.params.id, (error, result) => {
-      if (error) {
-        res.status(404).send(error);
-      } else {
-        res.status(200).send(result[0]);
-      }
-    });
+  update(data, id) {
+    data.date_service = moment(data.date_service, "DD/MM/YYYY").format(
+      "YYYY-MM-DD"
+    );
+    return repository.update([data, id]).then((result) => data);
   }
 
-  update(req, res) {
-    const sql = "UPDATE services SET ? WHERE id = ?";
-    const { id } = req.params;
-
-    connection.query(sql, [req.body, id], (error, result) => {
-      if (error) {
-        res.status(400).send(error);
-      } else {
-        res.status(200).send({ ...req.body, id });
-      }
-    });
-  }
-
-  delete(req, res) {
-    const sql = "DELETE FROM services WHERE id = ?";
-
-    connection.query(sql, req.params.id, (error, result) => {
-      if (error) {
-        res.status(400).send(error);
-      } else {
-        res.status(200).send(result);
-      }
-    });
+  delete(id) {
+    return repository.delete(id);
   }
 }
 
